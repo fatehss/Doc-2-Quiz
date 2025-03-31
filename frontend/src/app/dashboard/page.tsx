@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import CreateSubjectDialog from '@/components/dashboard/CreateSubjectDialog'
 
 // Mock data for quiz sets (you'll replace this with real data later)
 const mockQuizSets = [
@@ -86,6 +87,11 @@ export default function Dashboard() {
       </div>
       
       <div className="border border-black rounded-lg p-4 w-full">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Subjects</h2>
+          <CreateSubjectDialog />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {mockSubjects.map((subject) => (
             <Dialog key={subject.id}>
