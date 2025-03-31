@@ -7,13 +7,14 @@ nest_asyncio.apply()
 
 from llama_parse import LlamaParse
 from typing import Union, List
+import os
 
 async def parse_document(file_path: str) -> str:
     """
     Parse a single document using LlamaParse
     """
     parser = LlamaParse(
-        api_key="llx-...",  # Consider moving this to environment variables
+        api_key=os.getenv("LLAMAPARSE_API_KEY"),
         result_type="markdown",
         verbose=True,
     )
@@ -25,7 +26,6 @@ async def parse_document(file_path: str) -> str:
     # You might want to adjust this based on the actual API response
     return documents[0] if documents else ""
 
-async def parse_documents(file_paths: List[str]) -> List[str]:
     """
     Parse multiple documents using LlamaParse batch processing
     """

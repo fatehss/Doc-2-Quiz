@@ -5,20 +5,24 @@ from app.utils.ocr import parse_document
 from typing import List
 import asyncio
 from datetime import datetime
-from bson.objectid import PyObjectId
 from bson import ObjectId
 import tempfile
 import os
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
-@router.post("/")
+@router.post("")
 async def upload_documents(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...), name: str = Form(...)):
-
-    background_tasks.add_task(process_subject, files, name)
+    # Read all file contents first
+    file_contents = []
+    for file in files:
+        content = await file.read()
+        file_contents.append((file.filename, content))
+    
+    background_tasks.add_task(process_subject, file_contents, name)
     return {"message": "Documents uploaded successfully"}
 
-async def process_subject(files: List[UploadFile], name: str):
+async def process_subject(file_contents: List[tuple[str, bytes]], name: str):
     '''
     Process a subject by extracting text from each file and creating a list of documents, all in parallel. 
     '''
@@ -28,21 +32,26 @@ async def process_subject(files: List[UploadFile], name: str):
     try:
         # Process all documents in parallel
         documents = await asyncio.gather(
-            *[process_document(file, time_now, subject_id) for file in files]
+            *[process_document(filename, content, time_now, subject_id) for filename, content in file_contents]
         )
         document_ids = [document.id for document in documents]
         # Update subject with document IDs
 
-        documents_collection.insert_many(documents)
+        # Convert documents to dictionaries before inserting
+        documents_dict = [doc.model_dump(by_alias=True) for doc in documents]
+        documents_collection.insert_many(documents_dict)
         print(f"inserted documents: {document_ids}")
         # Create subject document 
-        subjects_collection.insert_one(Subject(
+        subject = Subject(
             _id=subject_id,
             name=name,
             created_at=time_now,
             document_ids=document_ids,
             metadata={}
-        ))
+        )
+        subjects_collection.insert_one(subject.model_dump(by_alias=True))
+        print(f"inserted subject: {subject_id}")
+        return {"message": "Subject uploaded successfully"}
         
     except Exception as e:
         # In case of failure, attempt to cleanup
@@ -50,15 +59,37 @@ async def process_subject(files: List[UploadFile], name: str):
         subjects_collection.delete_one({"_id": subject_id})
         raise e
 
-async def process_document(file: UploadFile, time_now: datetime, subject_id: PyObjectId) -> Document:
+async def process_document(filename: str, content: bytes, time_now: datetime, subject_id: ObjectId) -> Document:
     '''
     Process a document by extracting text from the image and creating a document object.
+    If the file is a text or markdown file, return its contents directly.
     '''
-    # Create a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp_file:
-        # Write the contents of the uploaded file to the temporary file
-        contents = await file.read()
-        tmp_file.write(contents)
+    # Get file extension
+    _, ext = os.path.splitext(filename)
+    ext = ext.lower()
+
+    # For text and markdown files, return content directly
+    if ext in ['.txt', '.md']:
+        try:
+            text = content.decode('utf-8')
+        except UnicodeDecodeError:
+            # Fallback to a more lenient encoding if UTF-8 fails
+            text = content.decode('latin-1')
+        
+        document = Document(
+            _id=ObjectId(),
+            subject_id=subject_id,
+            filename=filename,
+            ocr_text=text,
+            uploaded_at=time_now,
+            metadata={}
+        )
+        return document
+
+    # For other files, use LlamaParse
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp_file:
+        # Write the contents to the temporary file
+        tmp_file.write(content)
         tmp_file.flush()
         
         try:
@@ -68,7 +99,7 @@ async def process_document(file: UploadFile, time_now: datetime, subject_id: PyO
             document = Document(
                 _id=ObjectId(),
                 subject_id=subject_id,
-                filename=file.filename,
+                filename=filename,
                 ocr_text=text,
                 uploaded_at=time_now,
                 metadata={}
