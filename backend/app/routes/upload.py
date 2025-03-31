@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Form
 from app.db.database import documents_collection, subjects_collection
-from app.db.schemas import Subject, Document
+from app.db.schemas import Subject, Document, DocumentRef
 from app.utils.ocr import parse_document
 from typing import List
 import asyncio
@@ -34,23 +34,26 @@ async def process_subject(file_contents: List[tuple[str, bytes]], name: str):
         documents = await asyncio.gather(
             *[process_document(filename, content, time_now, subject_id) for filename, content in file_contents]
         )
-        document_ids = [document.id for document in documents]
-        # Update subject with document IDs
+        
+        # Create DocumentRef objects for each document
+        document_refs = [
+            DocumentRef(id=doc.id, filename=doc.filename)
+            for doc in documents
+        ]
 
         # Convert documents to dictionaries before inserting
         documents_dict = [doc.model_dump(by_alias=True) for doc in documents]
         documents_collection.insert_many(documents_dict)
-        print(f"inserted documents: {document_ids}")
-        # Create subject document 
+        
+        # Create subject document with document refs
         subject = Subject(
             _id=subject_id,
             name=name,
             created_at=time_now,
-            document_ids=document_ids,
+            documents=document_refs,  # Using the new document refs
             metadata={}
         )
         subjects_collection.insert_one(subject.model_dump(by_alias=True))
-        print(f"inserted subject: {subject_id}")
         return {"message": "Subject uploaded successfully"}
         
     except Exception as e:

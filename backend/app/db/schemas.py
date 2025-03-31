@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict
 from bson import ObjectId
 import datetime
 from uuid import UUID, uuid4
@@ -18,13 +18,21 @@ class Document(BaseModel):
         allow_population_by_field_name = True
         json_encoders = {ObjectId: str}
 
+# Document Reference Schema for denormalization
+class DocumentRef(BaseModel):
+    id: ObjectId
+    filename: str
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
 # Subject Schema
 class Subject(BaseModel):
     id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     user_id: str | None = None
     name: str
     created_at: datetime.datetime
-    document_ids: List[ObjectId]
+    documents: List[DocumentRef]  # Changed from document_ids to documents
     metadata: dict
     class Config:
         arbitrary_types_allowed = True
