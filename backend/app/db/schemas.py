@@ -31,7 +31,7 @@ class Document(BaseModel):
 # Subject Schema
 class Subject(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    user_id: str
+    user_id: str | None = None
     name: str
     created_at: datetime.datetime
     document_ids: List[PyObjectId]
@@ -45,7 +45,7 @@ class Question(BaseModel):
     question: str
     choices: List[str]
     answer: str
-    explanation: Optional[str] = None
+    explanation: str | None = None
     metadata: dict
 
 
@@ -55,7 +55,7 @@ class Quiz(BaseModel):
     created_at: datetime.datetime
     updated_at: datetime.datetime
     status: str = Field(default="pending")
-    score: Optional[float] = None
+    score: float | None = None
     questions: List[Question]
     metadata: dict
     class Config:

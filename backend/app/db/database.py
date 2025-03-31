@@ -6,6 +6,9 @@ MONGO_URI = os.getenv("MONGODB_URI")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 client = AsyncIOMotorClient(MONGO_URI, server_api=ServerApi('1'))
 db = client[MONGODB_DATABASE]
+documents_collection = db["documents"]
+subjects_collection = db["subjects"]
+quizzes_collection = db["quizzes"]
 
 
 
