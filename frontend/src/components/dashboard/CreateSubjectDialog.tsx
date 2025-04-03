@@ -26,7 +26,7 @@ const ACCEPTED_FILE_TYPES = [
 ]
 
 const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-const MAX_INDIVIDUAL_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+const MAX_INDIVIDUAL_SIZE = 3 * 1024 * 1024; // 3MB in bytes
 
 const subjectFormSchema = z.object({
   name: z.string().min(1, "Subject name is required"),
