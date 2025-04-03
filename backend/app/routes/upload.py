@@ -43,7 +43,7 @@ async def process_subject(file_contents: List[tuple[str, bytes]], name: str):
 
         # Convert documents to dictionaries before inserting
         documents_dict = [doc.model_dump(by_alias=True) for doc in documents]
-        documents_collection.insert_many(documents_dict)
+        await documents_collection.insert_many(documents_dict)
         
         # Create subject document with document refs
         subject = Subject(
@@ -53,13 +53,13 @@ async def process_subject(file_contents: List[tuple[str, bytes]], name: str):
             documents=document_refs,  # Using the new document refs
             metadata={}
         )
-        subjects_collection.insert_one(subject.model_dump(by_alias=True))
+        await subjects_collection.insert_one(subject.model_dump(by_alias=True))
         return {"message": "Subject uploaded successfully"}
         
     except Exception as e:
         # In case of failure, attempt to cleanup
-        documents_collection.delete_many({"subject_id": subject_id})
-        subjects_collection.delete_one({"_id": subject_id})
+        await documents_collection.delete_many({"subject_id": subject_id})
+        await subjects_collection.delete_one({"_id": subject_id})
         raise e
 
 async def process_document(filename: str, content: bytes, time_now: datetime, subject_id: ObjectId) -> Document:
