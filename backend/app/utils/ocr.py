@@ -13,8 +13,9 @@ async def parse_document(file_path: str) -> str:
     """
     Parse a single document using LlamaParse
     """
+    api_key = "llx-QbWueYYRCw7keyBNRpGY1x0kW6YgdjFZn9uWE57U5sKFJIG6"
     parser = LlamaParse(
-        api_key=os.getenv("LLAMAPARSE_API_KEY"),
+        api_key=api_key,
         result_type="markdown",
         verbose=True,
     )
@@ -24,7 +25,7 @@ async def parse_document(file_path: str) -> str:
     
     # Assuming the API returns a list of documents, we'll take the first one
     # You might want to adjust this based on the actual API response
-    return documents[0] if documents else ""
+    return documents[0].text if documents else ""
 
     """
     Parse multiple documents using LlamaParse batch processing
